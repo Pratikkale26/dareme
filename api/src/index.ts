@@ -7,6 +7,10 @@ import { prisma } from "./db/client";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import dareRoutes from "./routes/dare.routes";
+import proofRoutes from "./routes/proof.routes";
+import uploadRoutes from "./routes/upload.routes";
+import notificationRoutes from "./routes/notification.routes";
+import webhookRoutes from "./routes/webhook.routes";
 
 const app = express();
 
@@ -32,11 +36,10 @@ app.get("/health", async (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/dares", dareRoutes);
-
-// Future routes (Steps 5-8):
-// app.use("/api/upload", uploadRoutes);
-// app.use("/api/notifications", notificationRoutes);
-// app.use("/api/webhooks", webhookRoutes);
+app.use("/api/dares", proofRoutes);       // /api/dares/:dareId/proof(s)
+app.use("/api/upload", uploadRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/webhooks", webhookRoutes);
 
 app.listen(env.PORT, () => {
     console.log(`🚀 DareMe API running on http://localhost:${env.PORT}`);
