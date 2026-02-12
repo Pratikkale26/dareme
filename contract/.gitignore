@@ -5,3 +5,6 @@ target
 node_modules
 test-ledger
 .yarn
+runbooks/
+txtx.yml
+build_errors.txt
