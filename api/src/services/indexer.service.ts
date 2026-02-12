@@ -98,7 +98,7 @@ async function processInstruction(ix: any, tx: any) {
 function parseInstructionType(logs: string[]): string | null {
     for (const log of logs) {
         const match = log.match(/Instruction: (\w+)/);
-        if (match) {
+        if (match && match[1]) {
             // Convert PascalCase to snake_case
             return match[1].replace(/([A-Z])/g, "_$1").toLowerCase().slice(1);
         }
