@@ -3,6 +3,11 @@ import cors from "cors";
 import { env } from "./config/env";
 import { prisma } from "./db/client";
 
+// Route imports
+import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes";
+import dareRoutes from "./routes/dare.routes";
+
 const app = express();
 
 // Middleware
@@ -14,7 +19,6 @@ app.get("/", (_req, res) => {
     res.json({ status: "ok", service: "dareme-api" });
 });
 
-// Health check with DB
 app.get("/health", async (_req, res) => {
     try {
         await prisma.$queryRaw`SELECT 1`;
@@ -24,10 +28,12 @@ app.get("/health", async (_req, res) => {
     }
 });
 
-// Routes will be mounted here in subsequent steps:
-// app.use("/api/auth", authRoutes);
-// app.use("/api/users", userRoutes);
-// app.use("/api/dares", dareRoutes);
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/dares", dareRoutes);
+
+// Future routes (Steps 5-8):
 // app.use("/api/upload", uploadRoutes);
 // app.use("/api/notifications", notificationRoutes);
 // app.use("/api/webhooks", webhookRoutes);
