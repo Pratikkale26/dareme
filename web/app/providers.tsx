@@ -1,9 +1,22 @@
 'use client';
 
-import { PrivyProvider } from '@privy-io/react-auth';
+import { PrivyProvider, usePrivy } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
+import { useEffect } from 'react';
+import { api } from '../lib/api';
 
 const solanaConnectors = toSolanaWalletConnectors();
+
+/** Inner component that wires the Privy auth token to the API client */
+function ApiTokenSync({ children }: { children: React.ReactNode }) {
+    const { getAccessToken } = usePrivy();
+
+    useEffect(() => {
+        api.setTokenGetter(getAccessToken);
+    }, [getAccessToken]);
+
+    return <>{children}</>;
+}
 
 export default function Providers({ children }: { children: React.ReactNode }) {
     return (
@@ -38,7 +51,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                 },
             }}
         >
-            {children}
+            <ApiTokenSync>{children}</ApiTokenSync>
         </PrivyProvider>
     );
 }
