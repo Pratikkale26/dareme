@@ -3,6 +3,11 @@ import cors from "cors";
 import { env } from "./config/env";
 import { prisma } from "./db/client";
 
+// Global BigInt serialization for JSON
+(BigInt.prototype as any).toJSON = function () {
+    return this.toString();
+};
+
 // Route imports
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
