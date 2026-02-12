@@ -2,12 +2,12 @@
 
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 
 export default function Dashboard() {
     const { ready, authenticated, user, logout } = usePrivy();
-    const { wallets } = useWallets();
+    const { ready: walletsReady, wallets } = useWallets();
     const router = useRouter();
     const [balance, setBalance] = useState<number | null>(null);
     const [loadingBalance, setLoadingBalance] = useState(false);
@@ -19,21 +19,41 @@ export default function Dashboard() {
         }
     }, [ready, authenticated, router]);
 
-    // Get the primary Solana wallet (embedded privy wallet or external like Phantom)
-    const solanaWallet = wallets.find(
-        (w) => w.walletClientType === 'privy' || w.walletClientType === 'phantom' || w.connectorType === 'solana_adapter'
-    );
+    // Get the wallet address from the Privy user object (more reliable than useWallets)
+    const walletAddress = useMemo(() => {
+        // First try: get from user's linked accounts
+        if (user?.linkedAccounts) {
+            const solanaWallet = user.linkedAccounts.find(
+                (account) => account.type === 'wallet' && (account as any).chainType === 'solana'
+            );
+            if (solanaWallet && 'address' in solanaWallet) {
+                return (solanaWallet as any).address as string;
+            }
+        }
+
+        // Second try: get from user.wallet
+        if (user?.wallet?.address) {
+            return user.wallet.address;
+        }
+
+        // Third try: get from useWallets hook
+        if (walletsReady && wallets.length > 0) {
+            return wallets[0].address;
+        }
+
+        return null;
+    }, [user, walletsReady, wallets]);
 
     // Fetch balance
     useEffect(() => {
         async function fetchBalance() {
-            if (!solanaWallet?.address) return;
+            if (!walletAddress) return;
             setLoadingBalance(true);
             try {
                 const connection = new Connection(
                     process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com'
                 );
-                const pubkey = new PublicKey(solanaWallet.address);
+                const pubkey = new PublicKey(walletAddress);
                 const lamports = await connection.getBalance(pubkey);
                 setBalance(lamports / LAMPORTS_PER_SOL);
             } catch (err) {
@@ -44,7 +64,7 @@ export default function Dashboard() {
             }
         }
         fetchBalance();
-    }, [solanaWallet?.address]);
+    }, [walletAddress]);
 
     if (!ready || !authenticated) {
         return (
@@ -61,8 +81,8 @@ export default function Dashboard() {
         ? `@${twitterHandle}`
         : googleEmail
             ? googleEmail
-            : solanaWallet?.address
-                ? `${solanaWallet.address.slice(0, 4)}...${solanaWallet.address.slice(-4)}`
+            : walletAddress
+                ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
                 : 'Anon';
 
     return (
@@ -97,8 +117,8 @@ export default function Dashboard() {
                             <p className="mb-1 text-xs uppercase tracking-wider text-[var(--color-text-secondary)]">
                                 Address
                             </p>
-                            <p className="font-mono text-sm text-white">
-                                {solanaWallet?.address || 'No wallet connected'}
+                            <p className="font-mono text-sm text-white break-all">
+                                {walletAddress || (walletsReady ? 'No wallet found' : 'Loading wallet...')}
                             </p>
                         </div>
                         <div>
@@ -106,7 +126,9 @@ export default function Dashboard() {
                                 Balance (Devnet)
                             </p>
                             <p className="text-2xl font-bold text-white">
-                                {loadingBalance ? (
+                                {!walletAddress ? (
+                                    <span className="text-sm text-[var(--color-text-secondary)]">—</span>
+                                ) : loadingBalance ? (
                                     <span className="text-sm text-[var(--color-text-secondary)]">
                                         Loading...
                                     </span>
