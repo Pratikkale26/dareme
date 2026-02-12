@@ -20,7 +20,7 @@ router.get(
     validateQuery(presignedQuerySchema),
     async (req, res) => {
         try {
-            const { contentType, fileSize } = req.query as any;
+            const { contentType, fileSize } = (res.locals.query || req.query) as any;
             const result = await generatePresignedUploadUrl(
                 req.user!.id,
                 contentType,

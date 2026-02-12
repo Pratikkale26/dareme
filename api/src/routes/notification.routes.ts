@@ -23,7 +23,7 @@ const listQuerySchema = z.object({
 
 router.get("/", validateQuery(listQuerySchema), async (req, res) => {
     try {
-        const { page, limit } = req.query as any;
+        const { page, limit } = (res.locals.query || req.query) as any;
         const result = await getUserNotifications(req.user!.id, page, limit);
         res.json(result);
     } catch (err) {

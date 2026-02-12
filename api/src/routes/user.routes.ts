@@ -94,7 +94,7 @@ const dareHistorySchema = z.object({
 
 router.get("/:id/dares", validateQuery(dareHistorySchema), async (req, res) => {
     try {
-        const { role, page, limit } = req.query as any;
+        const { role, page, limit } = (res.locals.query || req.query) as any;
         const result = await getUserDares(req.params.id as string, role, page, limit);
         res.json(result);
     } catch (err) {

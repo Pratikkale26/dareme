@@ -84,7 +84,7 @@ const feedQuerySchema = z.object({
 
 router.get("/", validateQuery(feedQuerySchema), async (req, res) => {
     try {
-        const filters = req.query as any;
+        const filters = (res.locals.query || req.query) as any;
         const result = await getDareFeed(filters);
         res.json({
             dares: result.dares.map(serializeDare),
