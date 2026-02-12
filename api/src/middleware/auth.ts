@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { privyClient } from "../lib/privy";
 import { prisma } from "../db/client";
+import { loginOrCreateUser, syncPrivyAccounts } from "../services/user.service";
 
 // Extend Express Request to include user
 declare global {
@@ -36,7 +37,7 @@ export async function authMiddleware(
         }
 
         const token = authHeader.split(" ")[1];
-        if(!token) {
+        if (!token) {
             res.status(401).json({ error: "Missing Authorizatino token" });
             return;
         }
@@ -65,22 +66,40 @@ export async function authMiddleware(
             },
         });
 
-        // Create user on first login
+        // 1. User doesn't exist? Create with full Privy sync
         if (!user) {
-            user = await prisma.user.create({
-                data: { privyId },
-                select: {
-                    id: true,
-                    privyId: true,
-                    walletAddress: true,
-                    xHandle: true,
-                    email: true,
-                    displayName: true,
-                },
-            });
+            user = await loginOrCreateUser(privyId);
+        }
+        // 2. User exists but missing critical info (e.g. just linked Twitter)? Sync.
+        else if (!user.xHandle || !user.walletAddress) {
+            const linked = await syncPrivyAccounts(privyId);
+
+            // Only update if we found new data that we were missing
+            const shouldUpdate =
+                (!user.xHandle && linked.xHandle) ||
+                (!user.walletAddress && linked.walletAddress);
+
+            if (shouldUpdate) {
+                user = await prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                        ...(linked.xHandle && { xHandle: linked.xHandle }),
+                        ...(linked.xId && { xId: linked.xId }),
+                        ...(linked.walletAddress && { walletAddress: linked.walletAddress }),
+                    },
+                    select: {
+                        id: true,
+                        privyId: true,
+                        walletAddress: true,
+                        xHandle: true,
+                        email: true,
+                        displayName: true,
+                    },
+                });
+            }
         }
 
-        req.user = user;
+        req.user = user || undefined;
         next();
     } catch (err) {
         console.error("Auth middleware error:", err);
