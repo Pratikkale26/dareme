@@ -11,7 +11,7 @@ const router = Router();
  * processes a transaction on-chain. This is how we keep the DB
  * in sync with the blockchain.
  * 
- * Setup TODO: Configure a Helius webhook at https://dev.helius.xyz/
+ * Setup Done: Configure a Helius webhook at https://dev.helius.xyz/
  *   - URL: https://your-api.com/api/webhooks/helius
  *   - Type: Enhanced
  *   - Program: Your deployed program ID
