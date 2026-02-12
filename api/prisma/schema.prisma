@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -13,11 +10,169 @@ datasource db {
   provider = "postgresql"
 }
 
+// ============================================================================
+// User — Privy-based auth, no passwords
+// ============================================================================
+
 model User {
-  id         String  @id @default(cuid())
-  username   String  @unique
-  password   String
-  
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            String   @id @default(cuid())
+  privyId       String   @unique // Privy DID (did:privy:xxx)
+  walletAddress String?  @unique // Solana pubkey (set after wallet connect)
+  xHandle       String?  @unique // Twitter/X handle
+  xId           String?  @unique // Twitter/X user ID
+  email         String?  @unique // Google/email login
+  displayName   String?
+  avatarUrl     String?
+  bio           String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  daresCreated  Dare[]         @relation("Challenger")
+  daresAccepted Dare[]         @relation("Daree")
+  proofs        Proof[]
+  notifications Notification[]
+}
+
+// ============================================================================
+// Dare — off-chain metadata for on-chain dares
+// ============================================================================
+
+model Dare {
+  id              String          @id @default(cuid())
+  onChainId       BigInt          @unique // dare_id from contract
+  darePDA         String          @unique // on-chain PDA address
+  vaultPDA        String // vault PDA address
+
+  // Participants
+  challengerId    String
+  challenger      User            @relation("Challenger", fields: [challengerId], references: [id])
+  dareeId         String?
+  daree           User?           @relation("Daree", fields: [dareeId], references: [id])
+  targetXHandle   String? // X handle for off-platform dares
+
+  // Content (stored off-chain, hash stored on-chain)
+  title           String
+  description     String
+  descriptionHash String // sha256 of description, matches on-chain
+  category        String? // fitness, coding, social, food, etc.
+  tags            String[] // searchable tags
+
+  // Config
+  amount          BigInt // lamports
+  dareType        DareType
+  winnerSelection WinnerSelection
+  status          DareStatus      @default(CREATED)
+  deadline        DateTime
+
+  // Timestamps
+  createdAt       DateTime        @default(now())
+  acceptedAt      DateTime?
+  completedAt     DateTime?
+  refusedAt       DateTime?
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  proofs          Proof[]
+  notifications   Notification[]
+
+  @@index([status])
+  @@index([challengerId])
+  @@index([dareeId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// Proof — media submissions for dares
+// ============================================================================
+
+model Proof {
+  id              String      @id @default(cuid())
+  dareId          String
+  dare            Dare        @relation(fields: [dareId], references: [id])
+  submitterId     String
+  submitter       User        @relation(fields: [submitterId], references: [id])
+
+  mediaUrl        String // S3/Spaces URL
+  mediaType       MediaType // VIDEO, IMAGE
+  proofHash       String // sha256 of media file
+  caption         String?
+
+  status          ProofStatus @default(PENDING)
+  rejectionReason String?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([dareId])
+}
+
+// ============================================================================
+// Notification — in-app notifications
+// ============================================================================
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  dareId    String?
+  dare      Dare?            @relation(fields: [dareId], references: [id])
+
+  type      NotificationType
+  title     String
+  body      String
+  read      Boolean          @default(false)
+
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// Enums — mirror on-chain enums
+// ============================================================================
+
+enum DareStatus {
+  CREATED
+  ACTIVE
+  PROOF_SUBMITTED
+  COMPLETED
+  EXPIRED
+  CANCELLED
+  REJECTED
+  REFUSED
+}
+
+enum DareType {
+  DIRECT_DARE
+  PUBLIC_BOUNTY
+}
+
+enum WinnerSelection {
+  CHALLENGER_SELECT
+  COMMUNITY_VOTE
+}
+
+enum MediaType {
+  VIDEO
+  IMAGE
+}
+
+enum ProofStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  DARE_RECEIVED
+  DARE_ACCEPTED
+  DARE_REFUSED
+  PROOF_SUBMITTED
+  DARE_APPROVED
+  DARE_REJECTED
+  DARE_CANCELLED
+  DARE_EXPIRED
+  DARE_EXPIRING_SOON
 }
