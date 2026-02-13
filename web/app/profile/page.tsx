@@ -123,7 +123,21 @@ export default function Profile() {
                                 <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-secondary)]">
                                     {twitterHandle && <span>@{twitterHandle}</span>}
                                     {walletAddress && (
-                                        <span className="font-mono">{truncateAddress(walletAddress)}</span>
+                                        <span className="inline-flex items-center gap-1 font-mono">
+                                            {truncateAddress(walletAddress)}
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(walletAddress);
+                                                }}
+                                                className="cursor-pointer text-[var(--color-text-secondary)] hover:text-white transition-colors"
+                                                title="Copy wallet address"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                                                    <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
+                                                    <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
+                                                </svg>
+                                            </button>
+                                        </span>
                                     )}
                                 </div>
                             </div>
@@ -161,6 +175,14 @@ export default function Profile() {
                         <div className="text-center">
                             <div className="text-2xl font-bold text-white">{balance?.toFixed(2) ?? '—'}</div>
                             <div className="text-xs text-[var(--color-text-secondary)]">SOL Balance</div>
+                            <a
+                                href="https://faucet.solana.com/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-1 inline-block text-[10px] text-[#FF6B35] hover:text-[#FF8A5C] transition-colors"
+                            >
+                                Get Devnet SOL ↗
+                            </a>
                         </div>
                         <div className="text-center">
                             <div className="text-2xl font-bold text-white">{dares.length}</div>
@@ -182,8 +204,8 @@ export default function Profile() {
                             key={t}
                             onClick={() => setTab(t)}
                             className={`cursor-pointer border-b-2 px-4 py-3 text-sm font-medium transition-colors ${tab === t
-                                    ? 'border-[#FF6B35] text-[#FF6B35]'
-                                    : 'border-transparent text-[var(--color-text-secondary)] hover:text-white'
+                                ? 'border-[#FF6B35] text-[#FF6B35]'
+                                : 'border-transparent text-[var(--color-text-secondary)] hover:text-white'
                                 }`}
                         >
                             {t === 'created' ? '📝 Created' : '🤝 Accepted'}
