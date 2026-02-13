@@ -1,6 +1,7 @@
 import { prisma } from "../db/client";
 import { notifyUser } from "./notification.service";
 import type { DareStatus } from "../generated/prisma/client";
+import { sha256 } from "../lib/hash";
 
 /**
  * Maps on-chain instruction names to the DB actions and notifications we generate.
@@ -12,12 +13,45 @@ import type { DareStatus } from "../generated/prisma/client";
  * - This indexer updates the DB to match on-chain state
  * - This ensures the DB is EVENTUALLY CONSISTENT with the chain
  * - The chain is always the source of truth
+ *
+ * Helius Enhanced Transaction format keys:
+ *   accountData, description, events, fee, feePayer, instructions,
+ *   nativeTransfers, signature, slot, source, timestamp, tokenTransfers,
+ *   transactionError, type
  */
 
-// ── Instruction Handlers ──────────────────────────────────────────────────
+// ── Anchor Instruction Discriminators ─────────────────────────────────────
+// Anchor uses sha256("global:<instruction_name>")[0..8] as the instruction discriminator.
+// We precompute them to match against the `data` field in Helius instructions.
+
+function anchorDiscriminator(name: string): string {
+    // Anchor discriminator is first 8 bytes of sha256("global:<name>")
+    const hash = sha256(`global:${name}`);
+    return hash.slice(0, 16); // 8 bytes = 16 hex chars
+}
+
+const DISCRIMINATORS: Record<string, string> = {
+    create_dare: anchorDiscriminator("create_dare"),
+    accept_dare: anchorDiscriminator("accept_dare"),
+    refuse_dare: anchorDiscriminator("refuse_dare"),
+    submit_proof: anchorDiscriminator("submit_proof"),
+    approve_dare: anchorDiscriminator("approve_dare"),
+    reject_dare: anchorDiscriminator("reject_dare"),
+    cancel_dare: anchorDiscriminator("cancel_dare"),
+    expire_dare: anchorDiscriminator("expire_dare"),
+};
+
+// Build reverse lookup: hex discriminator → instruction name
+const DISC_TO_NAME: Record<string, string> = {};
+for (const [name, disc] of Object.entries(DISCRIMINATORS)) {
+    DISC_TO_NAME[disc] = name;
+    console.log(`  📋 Discriminator for ${name}: ${disc}`);
+}
+
+// ── Main Entry Point ──────────────────────────────────────────────────────
 
 interface ParsedAccounts {
-    [key: string]: string; // account name → pubkey
+    [key: string]: string;
 }
 
 /**
@@ -36,83 +70,128 @@ export async function processHeliusWebhook(transactions: any[]) {
 
 async function processTransaction(tx: any) {
     // Skip failed transactions
-    if (tx.transactionError) return;
+    if (tx.transactionError) {
+        console.log(`  ⚠️ Skipping failed tx: ${tx.signature?.slice(0, 8)}...`);
+        return;
+    }
 
     const signature = tx.signature;
+    console.log(`� Processing tx: ${signature?.slice(0, 12)}...`);
+
+    // Helius Enhanced format: instructions is an array of instruction objects
     const instructions = tx.instructions || [];
+    console.log(`  🔍 Instructions count: ${instructions.length}`);
 
     for (const ix of instructions) {
-        // Only process our program's instructions
-        // The program ID should match our deployed program
-        const innerIxs = ix.innerInstructions || [];
+        const programId = ix.programId;
+        const data = ix.data; // base58-encoded instruction data
+        const accounts = ix.accounts || [];
 
-        // Helius enhanced transactions provide parsed instruction data
-        // We look at the instruction type/name to determine what happened
-        await processInstruction(ix, tx);
-    }
-}
+        console.log(`  🔍 Instruction: programId=${programId?.slice(0, 12)}..., accounts=${accounts.length}, data=${data?.slice(0, 20)}...`);
 
-async function processInstruction(ix: any, tx: any) {
-    // Helius enhanced transaction format includes events and account data
-    // We extract what we need from the transaction's account keys and logs
-    const logs: string[] = tx.meta?.logMessages || tx.logMessages || [];
+        // Try to match the instruction discriminator
+        const instructionType = parseInstructionFromData(data);
 
-    // Parse instruction type from logs
-    const instructionType = parseInstructionType(logs);
-    if (!instructionType) return;
-
-    console.log(`📡 Indexer: Processing ${instructionType} (tx: ${tx.signature?.slice(0, 8)}...)`);
-
-    switch (instructionType) {
-        case "create_dare":
-            await handleCreateDare(tx);
-            break;
-        case "accept_dare":
-            await handleAcceptDare(tx);
-            break;
-        case "refuse_dare":
-            await handleRefuseDare(tx);
-            break;
-        case "submit_proof":
-            await handleSubmitProof(tx);
-            break;
-        case "approve_dare":
-            await handleApproveDare(tx);
-            break;
-        case "reject_dare":
-            await handleRejectDare(tx);
-            break;
-        case "cancel_dare":
-            await handleCancelDare(tx);
-            break;
-        case "expire_dare":
-            await handleExpireDare(tx);
-            break;
+        if (instructionType) {
+            console.log(`  ✅ Matched instruction: ${instructionType}`);
+            await handleInstruction(instructionType, accounts, tx);
+        } else {
+            // Also check inner instructions
+            const innerIxs = ix.innerInstructions || [];
+            for (const inner of innerIxs) {
+                const innerType = parseInstructionFromData(inner.data);
+                if (innerType) {
+                    console.log(`  ✅ Matched inner instruction: ${innerType}`);
+                    await handleInstruction(innerType, inner.accounts || accounts, tx);
+                }
+            }
+        }
     }
 }
 
 /**
- * Parse instruction type from transaction logs.
- * Anchor logs: "Program log: Instruction: CreateDare"
+ * Parse instruction type from base58-encoded instruction data.
+ * Compares the first 8 bytes against known Anchor discriminators.
  */
-function parseInstructionType(logs: string[]): string | null {
-    for (const log of logs) {
-        const match = log.match(/Instruction: (\w+)/);
-        if (match && match[1]) {
-            // Convert PascalCase to snake_case
-            return match[1].replace(/([A-Z])/g, "_$1").toLowerCase().slice(1);
-        }
+function parseInstructionFromData(data: string | undefined): string | null {
+    if (!data) return null;
+
+    try {
+        // Instruction data from Helius is base58-encoded.
+        // Decode it to get the raw bytes, then check the first 8 bytes (discriminator).
+        const decoded = base58ToHex(data);
+        if (decoded.length < 16) return null; // Need at least 8 bytes
+
+        const disc = decoded.slice(0, 16);
+        return DISC_TO_NAME[disc] || null;
+    } catch {
+        return null;
     }
-    return null;
+}
+
+/**
+ * Simple base58 to hex decoder.
+ */
+function base58ToHex(input: string): string {
+    const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    let num = BigInt(0);
+    for (const char of input) {
+        const idx = ALPHABET.indexOf(char);
+        if (idx === -1) return "";
+        num = num * 58n + BigInt(idx);
+    }
+    let hex = num.toString(16);
+    if (hex.length % 2 !== 0) hex = "0" + hex;
+
+    // Handle leading zeros (1 in base58 = 0x00)
+    let leadingZeros = 0;
+    for (const char of input) {
+        if (char === "1") leadingZeros++;
+        else break;
+    }
+    return "00".repeat(leadingZeros) + hex;
+}
+
+// ── Instruction Router ───────────────────────────────────────────────────
+
+async function handleInstruction(instructionType: string, accounts: string[], tx: any) {
+    switch (instructionType) {
+        case "create_dare":
+            await handleCreateDare(accounts, tx);
+            break;
+        case "accept_dare":
+            await handleAcceptDare(accounts, tx);
+            break;
+        case "refuse_dare":
+            await handleRefuseDare(accounts, tx);
+            break;
+        case "submit_proof":
+            await handleSubmitProof(accounts, tx);
+            break;
+        case "approve_dare":
+            await handleApproveDare(accounts, tx);
+            break;
+        case "reject_dare":
+            await handleRejectDare(accounts, tx);
+            break;
+        case "cancel_dare":
+            await handleCancelDare(accounts, tx);
+            break;
+        case "expire_dare":
+            await handleExpireDare(accounts, tx);
+            break;
+        default:
+            console.log(`  ⚠️ Unknown instruction type: ${instructionType}`);
+    }
 }
 
 // ── Individual Handlers ───────────────────────────────────────────────────
+// Account order matches the Anchor IDL context structs.
+// Typically: [signer, dare_pda, vault_pda?, system_program?, ...]
 
-async function handleCreateDare(tx: any) {
-    // When webhook arrives before the frontend POST /api/dares,
-    // we just log it. The frontend call will create the full record.
-    // If webhook arrives after, the record already exists — skip.
-    const darePDA = findAccountByIndex(tx, 1); // dare account is typically index 1
+async function handleCreateDare(accounts: string[], tx: any) {
+    // accounts[0] = challenger (signer), accounts[1] = dare PDA
+    const darePDA = accounts[1];
     if (!darePDA) return;
 
     const existing = await prisma.dare.findUnique({ where: { darePDA } });
@@ -121,15 +200,16 @@ async function handleCreateDare(tx: any) {
         return;
     }
 
-    // Dare doesn't exist yet — frontend hasn't called POST /api/dares yet.
-    // That's fine, the frontend will create it. Log for monitoring.
     console.log(`  ⏳ Dare ${darePDA.slice(0, 8)}... not in DB yet (waiting for frontend POST)`);
 }
 
-async function handleAcceptDare(tx: any) {
-    const darePDA = findAccountByIndex(tx, 1);
-    const dareePubkey = findAccountByIndex(tx, 0); // daree is the signer
+async function handleAcceptDare(accounts: string[], tx: any) {
+    // accounts[0] = daree (signer), accounts[1] = dare PDA
+    const dareePubkey = accounts[0];
+    const darePDA = accounts[1];
     if (!darePDA) return;
+
+    console.log(`  🔍 Accept dare: daree=${dareePubkey?.slice(0, 8)}..., darePDA=${darePDA.slice(0, 8)}...`);
 
     // Find the daree user by wallet
     const dareeUser = dareePubkey
@@ -163,8 +243,8 @@ async function handleAcceptDare(tx: any) {
     }
 }
 
-async function handleRefuseDare(tx: any) {
-    const darePDA = findAccountByIndex(tx, 1);
+async function handleRefuseDare(accounts: string[], tx: any) {
+    const darePDA = accounts[1];
     if (!darePDA) return;
 
     try {
@@ -176,7 +256,6 @@ async function handleRefuseDare(tx: any) {
             },
         });
 
-        // Notify challenger of refusal
         await notifyUser(
             dare.challengerId,
             dare.id,
@@ -193,8 +272,8 @@ async function handleRefuseDare(tx: any) {
     }
 }
 
-async function handleSubmitProof(tx: any) {
-    const darePDA = findAccountByIndex(tx, 1);
+async function handleSubmitProof(accounts: string[], tx: any) {
+    const darePDA = accounts[1];
     if (!darePDA) return;
 
     try {
@@ -203,7 +282,6 @@ async function handleSubmitProof(tx: any) {
             data: { status: "PROOF_SUBMITTED" },
         });
 
-        // Notify challenger to review
         await notifyUser(
             dare.challengerId,
             dare.id,
@@ -220,8 +298,8 @@ async function handleSubmitProof(tx: any) {
     }
 }
 
-async function handleApproveDare(tx: any) {
-    const darePDA = findAccountByIndex(tx, 1);
+async function handleApproveDare(accounts: string[], tx: any) {
+    const darePDA = accounts[1];
     if (!darePDA) return;
 
     try {
@@ -233,7 +311,6 @@ async function handleApproveDare(tx: any) {
             },
         });
 
-        // Notify daree they earned SOL
         const amountSOL = Number(dare.amount) / 1_000_000_000;
         await notifyUser(
             dare.dareeId,
@@ -251,8 +328,8 @@ async function handleApproveDare(tx: any) {
     }
 }
 
-async function handleRejectDare(tx: any) {
-    const darePDA = findAccountByIndex(tx, 1);
+async function handleRejectDare(accounts: string[], tx: any) {
+    const darePDA = accounts[1];
     if (!darePDA) return;
 
     try {
@@ -261,7 +338,6 @@ async function handleRejectDare(tx: any) {
             data: { status: "REJECTED" },
         });
 
-        // Notify daree their proof was rejected
         await notifyUser(
             dare.dareeId,
             dare.id,
@@ -278,8 +354,8 @@ async function handleRejectDare(tx: any) {
     }
 }
 
-async function handleCancelDare(tx: any) {
-    const darePDA = findAccountByIndex(tx, 1);
+async function handleCancelDare(accounts: string[], tx: any) {
+    const darePDA = accounts[1];
     if (!darePDA) return;
 
     try {
@@ -288,7 +364,6 @@ async function handleCancelDare(tx: any) {
             data: { status: "CANCELLED" },
         });
 
-        // Notify daree if one exists
         await notifyUser(
             dare.dareeId,
             dare.id,
@@ -305,8 +380,8 @@ async function handleCancelDare(tx: any) {
     }
 }
 
-async function handleExpireDare(tx: any) {
-    const darePDA = findAccountByIndex(tx, 1);
+async function handleExpireDare(accounts: string[], tx: any) {
+    const darePDA = accounts[1];
     if (!darePDA) return;
 
     try {
@@ -315,7 +390,6 @@ async function handleExpireDare(tx: any) {
             data: { status: "EXPIRED" },
         });
 
-        // Notify both parties
         await notifyUser(
             dare.challengerId,
             dare.id,
@@ -337,23 +411,4 @@ async function handleExpireDare(tx: any) {
             console.log(`  ⏳ Dare ${darePDA.slice(0, 8)}... not in DB (expire)`);
         } else throw err;
     }
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────
-
-/**
- * Extract an account pubkey by index from a Helius enhanced transaction.
- */
-function findAccountByIndex(tx: any, index: number): string | null {
-    const accounts = tx.transaction?.message?.accountKeys
-        || tx.accountKeys
-        || tx.transaction?.message?.staticAccountKeys
-        || [];
-
-    if (index < accounts.length) {
-        // Helius can return string or { pubkey: string }
-        const acct = accounts[index];
-        return typeof acct === "string" ? acct : acct?.pubkey || null;
-    }
-    return null;
 }
