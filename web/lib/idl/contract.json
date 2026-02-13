@@ -1,0 +1,1165 @@
+{
+  "address": "8Vg3ximsFxoaEveSLQNe49i8tkSaeNubnxa54ypwXiD8",
+  "metadata": {
+    "name": "contract",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "accept_dare",
+      "docs": [
+        "Accept a P2P dare (DirectDare only)"
+      ],
+      "discriminator": [
+        238,
+        123,
+        72,
+        103,
+        159,
+        234,
+        210,
+        83
+      ],
+      "accounts": [
+        {
+          "name": "daree",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "dare",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare.challenger",
+                "account": "Dare"
+              },
+              {
+                "kind": "account",
+                "path": "dare.dare_id",
+                "account": "Dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "daree_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "daree"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "approve_dare",
+      "docs": [
+        "Challenger approves proof and releases escrow to daree"
+      ],
+      "discriminator": [
+        75,
+        217,
+        114,
+        212,
+        39,
+        128,
+        254,
+        190
+      ],
+      "accounts": [
+        {
+          "name": "challenger",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "dare"
+          ]
+        },
+        {
+          "name": "dare",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare.challenger",
+                "account": "Dare"
+              },
+              {
+                "kind": "account",
+                "path": "dare.dare_id",
+                "account": "Dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "daree",
+          "writable": true
+        },
+        {
+          "name": "daree_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "daree"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_dare",
+      "docs": [
+        "Challenger cancels dare before acceptance (refund)"
+      ],
+      "discriminator": [
+        170,
+        254,
+        168,
+        239,
+        96,
+        236,
+        53,
+        126
+      ],
+      "accounts": [
+        {
+          "name": "challenger",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "dare"
+          ]
+        },
+        {
+          "name": "dare",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare.challenger",
+                "account": "Dare"
+              },
+              {
+                "kind": "account",
+                "path": "dare.dare_id",
+                "account": "Dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "challenger_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "challenger"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_dare",
+      "docs": [
+        "Create a new dare with SOL escrow",
+        "`target_daree` — set to Pubkey::default() for open dares, or a specific pubkey for targeted DirectDares"
+      ],
+      "discriminator": [
+        165,
+        248,
+        7,
+        27,
+        99,
+        187,
+        25,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "challenger",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "dare",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "challenger"
+              },
+              {
+                "kind": "arg",
+                "path": "dare_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "challenger_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "challenger"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "dare_id",
+          "type": "u64"
+        },
+        {
+          "name": "description_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "deadline",
+          "type": "i64"
+        },
+        {
+          "name": "dare_type",
+          "type": {
+            "defined": {
+              "name": "DareType"
+            }
+          }
+        },
+        {
+          "name": "winner_selection",
+          "type": {
+            "defined": {
+              "name": "WinnerSelection"
+            }
+          }
+        },
+        {
+          "name": "target_daree",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "expire_dare",
+      "docs": [
+        "Permissionless crank: handle expired dares"
+      ],
+      "discriminator": [
+        250,
+        215,
+        157,
+        210,
+        10,
+        18,
+        124,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Anyone can call this (permissionless crank)"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "dare",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare.challenger",
+                "account": "Dare"
+              },
+              {
+                "kind": "account",
+                "path": "dare.dare_id",
+                "account": "Dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient",
+          "writable": true
+        },
+        {
+          "name": "challenger_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare.challenger",
+                "account": "Dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "daree_stats",
+          "docs": [
+            "Optional: only needed when dare has a daree"
+          ],
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare.daree",
+                "account": "Dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "refuse_dare",
+      "docs": [
+        "Targeted daree refuses a DirectDare (refund to challenger)"
+      ],
+      "discriminator": [
+        29,
+        81,
+        37,
+        218,
+        38,
+        163,
+        183,
+        9
+      ],
+      "accounts": [
+        {
+          "name": "daree",
+          "docs": [
+            "The targeted daree who is refusing the dare"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "dare",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare.challenger",
+                "account": "Dare"
+              },
+              {
+                "kind": "account",
+                "path": "dare.dare_id",
+                "account": "Dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "challenger",
+          "writable": true
+        },
+        {
+          "name": "challenger_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare.challenger",
+                "account": "Dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "reject_dare",
+      "docs": [
+        "Challenger rejects proof (daree can re-submit)"
+      ],
+      "discriminator": [
+        24,
+        236,
+        243,
+        244,
+        209,
+        25,
+        109,
+        91
+      ],
+      "accounts": [
+        {
+          "name": "challenger",
+          "signer": true,
+          "relations": [
+            "dare"
+          ]
+        },
+        {
+          "name": "dare",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare.challenger",
+                "account": "Dare"
+              },
+              {
+                "kind": "account",
+                "path": "dare.dare_id",
+                "account": "Dare"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "submit_proof",
+      "docs": [
+        "Submit proof for a dare"
+      ],
+      "discriminator": [
+        54,
+        241,
+        46,
+        84,
+        4,
+        212,
+        46,
+        94
+      ],
+      "accounts": [
+        {
+          "name": "submitter",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "dare",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "dare.challenger",
+                "account": "Dare"
+              },
+              {
+                "kind": "account",
+                "path": "dare.dare_id",
+                "account": "Dare"
+              }
+            ]
+          }
+        },
+        {
+          "name": "submitter_stats",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "submitter"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "proof_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Dare",
+      "discriminator": [
+        99,
+        27,
+        218,
+        204,
+        253,
+        181,
+        17,
+        54
+      ]
+    },
+    {
+      "name": "UserStats",
+      "discriminator": [
+        176,
+        223,
+        136,
+        27,
+        122,
+        79,
+        32,
+        227
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6001,
+      "name": "DeadlinePassed",
+      "msg": "Deadline must be in the future"
+    },
+    {
+      "code": 6002,
+      "name": "DeadlineTooFar",
+      "msg": "Deadline is too far in the future (max 30 days)"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidDareStatus",
+      "msg": "Dare is not in the expected status"
+    },
+    {
+      "code": 6004,
+      "name": "CannotAcceptOwnDare",
+      "msg": "You cannot accept your own dare"
+    },
+    {
+      "code": 6005,
+      "name": "UnauthorizedChallenger",
+      "msg": "Only the challenger can perform this action"
+    },
+    {
+      "code": 6006,
+      "name": "UnauthorizedDaree",
+      "msg": "Only the daree can perform this action"
+    },
+    {
+      "code": 6007,
+      "name": "DareExpired",
+      "msg": "The dare has expired"
+    },
+    {
+      "code": 6008,
+      "name": "DareNotExpired",
+      "msg": "The dare has not expired yet"
+    },
+    {
+      "code": 6009,
+      "name": "DisputeWindowActive",
+      "msg": "The dispute window has not passed yet"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidDareType",
+      "msg": "This dare type does not support this action"
+    },
+    {
+      "code": 6011,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow occurred"
+    },
+    {
+      "code": 6012,
+      "name": "MissingDareeStats",
+      "msg": "Daree stats account is required but missing"
+    },
+    {
+      "code": 6013,
+      "name": "NotTargetedDare",
+      "msg": "This dare does not have a target daree to refuse"
+    }
+  ],
+  "types": [
+    {
+      "name": "Dare",
+      "docs": [
+        "Main Dare account — stores all dare metadata and state on-chain",
+        "Seeds: [\"dare\", challenger.key(), dare_id.to_le_bytes()]"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "challenger",
+            "type": "pubkey"
+          },
+          {
+            "name": "daree",
+            "type": "pubkey"
+          },
+          {
+            "name": "has_daree",
+            "type": "bool"
+          },
+          {
+            "name": "dare_id",
+            "type": "u64"
+          },
+          {
+            "name": "description_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "DareStatus"
+              }
+            }
+          },
+          {
+            "name": "dare_type",
+            "type": {
+              "defined": {
+                "name": "DareType"
+              }
+            }
+          },
+          {
+            "name": "winner_selection",
+            "type": {
+              "defined": {
+                "name": "WinnerSelection"
+              }
+            }
+          },
+          {
+            "name": "proof_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "has_proof",
+            "type": "bool"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "deadline",
+            "type": "i64"
+          },
+          {
+            "name": "accepted_at",
+            "type": "i64"
+          },
+          {
+            "name": "completed_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DareStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Created"
+          },
+          {
+            "name": "Active"
+          },
+          {
+            "name": "ProofSubmitted"
+          },
+          {
+            "name": "Completed"
+          },
+          {
+            "name": "Expired"
+          },
+          {
+            "name": "Cancelled"
+          },
+          {
+            "name": "Rejected"
+          },
+          {
+            "name": "Refused"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DareType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "DirectDare"
+          },
+          {
+            "name": "PublicBounty"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UserStats",
+      "docs": [
+        "Per-user reputation stats",
+        "Seeds: [\"user_stats\", user.key()]"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "dares_created",
+            "type": "u32"
+          },
+          {
+            "name": "dares_accepted",
+            "type": "u32"
+          },
+          {
+            "name": "dares_completed",
+            "type": "u32"
+          },
+          {
+            "name": "dares_failed",
+            "type": "u32"
+          },
+          {
+            "name": "total_earned",
+            "type": "u64"
+          },
+          {
+            "name": "total_spent",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WinnerSelection",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "ChallengerSelect"
+          },
+          {
+            "name": "CommunityVote"
+          }
+        ]
+      }
+    }
+  ]
+}
