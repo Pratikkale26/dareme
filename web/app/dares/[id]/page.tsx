@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
+import { useWallets, useSignAndSendTransaction } from '@privy-io/react-auth/solana';
 import { PublicKey } from '@solana/web3.js';
+import bs58 from 'bs58';
 import Navbar from '../../../components/Navbar';
 import { useDare } from '../../../hooks/useApi';
 import { formatSol, formatDeadline, formatRelativeTime, getStatusColor, getStatusLabel, truncateAddress } from '../../../lib/utils';
-import { api, type Proof } from '../../../lib/api';
+import { api, type Proof, type DareStatus } from '../../../lib/api';
 import {
     buildAcceptDareInstruction,
     buildApproveDareInstruction,
@@ -27,6 +29,7 @@ export default function DareDetail() {
     const router = useRouter();
     const { user: privyUser, authenticated, linkTwitter } = usePrivy();
     const { ready: walletsReady, wallets } = useWallets();
+    const { signAndSendTransaction } = useSignAndSendTransaction();
     const { dare, loading, error, refetch } = useDare(id as string);
     const [proofs, setProofs] = useState<Proof[]>([]);
     const [proofsLoading, setProofsLoading] = useState(false);
@@ -37,35 +40,42 @@ export default function DareDetail() {
     const [proofFile, setProofFile] = useState<File | null>(null);
     const [proofCaption, setProofCaption] = useState('');
     const [proofSubmitted, setProofSubmitted] = useState(false);
+    const [optimisticStatus, setOptimisticStatus] = useState<DareStatus | null>(null);
 
     const xLinked = hasXLinked(privyUser);
     const xHandle = getXHandle(privyUser);
 
-    // Robust wallet address detection: linkedAccounts → privyUser.wallet → wallets[0]
-    const walletAddress = useMemo(() => {
+    // Use optimistic status if available, fallback to dare status
+    const displayStatus = optimisticStatus || (dare ? dare.status : null);
+
+    // Robust wallet address detection to ensure we use the ACTIVE wallet (e.g. Phantom) not just the first one (e.g. Backpack)
+    const solanaWallet = useMemo(() => {
+        if (!walletsReady || wallets.length === 0) return null;
+
+        // 1. Try to match the user's currently active wallet (from usePrivy)
+        const activeWalletAddress = privyUser?.wallet?.address;
+        if (activeWalletAddress) {
+            const match = wallets.find(w => w.address === activeWalletAddress);
+            if (match) return match;
+        }
+
+        // 2. Try to match any linked solana wallet
         if (privyUser?.linkedAccounts) {
-            const solanaWallet = privyUser.linkedAccounts.find(
-                (account) => account.type === 'wallet' && (account as any).chainType === 'solana'
+            const linkedSolana = privyUser.linkedAccounts.find(
+                (a): a is any => a.type === 'wallet' && (a as any).chainType === 'solana'
             );
-            if (solanaWallet && 'address' in solanaWallet) {
-                return (solanaWallet as any).address as string;
+            if (linkedSolana) {
+                const match = wallets.find(w => w.address === (linkedSolana as any).address);
+                if (match) return match;
             }
         }
-        if (privyUser?.wallet?.address) return privyUser.wallet.address;
-        if (walletsReady && wallets.length > 0) return wallets[0].address;
-        return null;
-    }, [privyUser, walletsReady, wallets]);
 
-    const walletPubkey = walletAddress ? new PublicKey(walletAddress) : null;
-
-    // Find the wallet object that can sign transactions
-    const connectedWallet = useMemo(() => {
-        if (!walletsReady || !wallets.length) return null;
-        if (walletAddress) {
-            return wallets.find(w => w.address === walletAddress) || wallets[0];
-        }
+        // 3. Fallback to first available
         return wallets[0];
-    }, [wallets, walletsReady, walletAddress]);
+    }, [wallets, walletsReady, privyUser]);
+
+    const walletAddress = solanaWallet?.address ?? null;
+    const walletPubkey = walletAddress ? new PublicKey(walletAddress) : null;
 
     // Fetch proofs
     useEffect(() => {
@@ -86,8 +96,8 @@ export default function DareDetail() {
         : false;
 
     // Helper: sign and send transaction
-    const sendTx = useCallback(async (actionName: string, buildFn: () => any) => {
-        if (!walletPubkey || !connectedWallet) {
+    const sendTx = useCallback(async (actionName: string, buildFn: () => any, onSuccess?: () => void) => {
+        if (!walletPubkey || !solanaWallet) {
             setActionError('No wallet connected');
             return;
         }
@@ -99,11 +109,19 @@ export default function DareDetail() {
             const connection = getConnection();
             const instruction = buildFn();
             const tx = await buildTransaction(connection, walletPubkey, instruction);
+            const serializedTx = tx.serialize({ requireAllSignatures: false });
 
-            const signedTx = await (connectedWallet as any).signTransaction(tx);
-            const signature = await connection.sendRawTransaction(signedTx.serialize());
+            const { signature: sigBytes } = await signAndSendTransaction({
+                transaction: serializedTx,
+                wallet: solanaWallet,
+            });
+            const signature = bs58.encode(sigBytes);
+
             setTxHash(signature);
             await connection.confirmTransaction(signature, 'confirmed');
+
+            // Optimistic update
+            if (onSuccess) onSuccess();
 
             // Refetch dare data after action
             setTimeout(() => refetch(), 2000);
@@ -117,7 +135,7 @@ export default function DareDetail() {
             }
             setActionLoading(null);
         }
-    }, [walletPubkey, connectedWallet, refetch]);
+    }, [walletPubkey, solanaWallet, refetch, signAndSendTransaction]);
 
     // ── Actions ───────────────────────────────────────────────────────────────
     const handleAccept = () => {
@@ -127,35 +145,43 @@ export default function DareDetail() {
             return;
         }
         const darePDA = new PublicKey(dare.darePDA);
-        sendTx('accept', () => buildAcceptDareInstruction({ daree: walletPubkey, darePDA }));
+        sendTx('accept',
+            () => buildAcceptDareInstruction({ daree: walletPubkey, darePDA }),
+            () => setOptimisticStatus('ACTIVE')
+        );
     };
 
     const handleApprove = () => {
         if (!dare || !walletPubkey || !dare.daree?.walletAddress) return;
         const darePDA = new PublicKey(dare.darePDA);
         const [vaultPDA] = deriveVaultPDA(darePDA);
-        sendTx('approve', () =>
-            buildApproveDareInstruction({
+        sendTx('approve',
+            () => buildApproveDareInstruction({
                 challenger: walletPubkey,
                 darePDA,
                 vaultPDA,
                 daree: new PublicKey(dare.daree!.walletAddress!),
-            })
+            }),
+            () => setOptimisticStatus('COMPLETED')
         );
     };
 
     const handleReject = () => {
         if (!dare || !walletPubkey) return;
         const darePDA = new PublicKey(dare.darePDA);
-        sendTx('reject', () => buildRejectDareInstruction({ challenger: walletPubkey, darePDA }));
+        sendTx('reject',
+            () => buildRejectDareInstruction({ challenger: walletPubkey, darePDA }),
+            () => setOptimisticStatus('ACTIVE')
+        );
     };
 
     const handleCancel = () => {
         if (!dare || !walletPubkey) return;
         const darePDA = new PublicKey(dare.darePDA);
         const [vaultPDA] = deriveVaultPDA(darePDA);
-        sendTx('cancel', () =>
-            buildCancelDareInstruction({ challenger: walletPubkey, darePDA, vaultPDA })
+        sendTx('cancel',
+            () => buildCancelDareInstruction({ challenger: walletPubkey, darePDA, vaultPDA }),
+            () => setOptimisticStatus('CANCELLED')
         );
     };
 
@@ -163,13 +189,14 @@ export default function DareDetail() {
         if (!dare || !walletPubkey || !dare.challenger?.walletAddress) return;
         const darePDA = new PublicKey(dare.darePDA);
         const [vaultPDA] = deriveVaultPDA(darePDA);
-        sendTx('refuse', () =>
-            buildRefuseDareInstruction({
+        sendTx('refuse',
+            () => buildRefuseDareInstruction({
                 daree: walletPubkey,
                 darePDA,
                 vaultPDA,
                 challenger: new PublicKey(dare.challenger.walletAddress!),
-            })
+            }),
+            () => setOptimisticStatus('CANCELLED')
         );
     };
 
@@ -209,8 +236,14 @@ export default function DareDetail() {
             });
 
             const tx = await buildTransaction(connection, walletPubkey!, instruction);
-            const signedTx = await (connectedWallet as any).signTransaction(tx);
-            const signature = await connection.sendRawTransaction(signedTx.serialize());
+            const serializedTx = tx.serialize({ requireAllSignatures: false });
+
+            const { signature: sigBytes } = await signAndSendTransaction({
+                transaction: serializedTx,
+                wallet: solanaWallet!,
+            });
+            const signature = bs58.encode(sigBytes);
+
             setTxHash(signature);
             await connection.confirmTransaction(signature, 'confirmed');
 
@@ -228,6 +261,7 @@ export default function DareDetail() {
             setProofFile(null);
             setProofCaption('');
             setProofSubmitted(true);
+            setOptimisticStatus('PROOF_SUBMITTED');
             setTimeout(() => refetch(), 2000);
         } catch (err: any) {
             console.error('Submit proof error:', err);
@@ -276,8 +310,8 @@ export default function DareDetail() {
                 {/* Header */}
                 <div className="mb-6">
                     <div className="mb-3 flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(dare.status)}`}>
-                            {getStatusLabel(dare.status)}
+                        <span className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(displayStatus || 'CREATED')}`}>
+                            {getStatusLabel(displayStatus || 'CREATED')}
                         </span>
                         <span className="rounded-md bg-[var(--color-bg-card)] px-2 py-1 text-xs text-[var(--color-text-secondary)]">
                             {dare.dareType === 'DIRECT_DARE' ? '🎯 Direct Dare' : '🏆 Public Bounty'}
@@ -503,7 +537,7 @@ export default function DareDetail() {
                         {authenticated && walletPubkey && (
                             <div className="space-y-2">
                                 {/* X Account Warning */}
-                                {!xLinked && (dare.status === 'CREATED' || dare.status === 'ACTIVE') && (
+                                {!xLinked && (displayStatus === 'CREATED' || displayStatus === 'ACTIVE') && (
                                     <div className="rounded-xl border border-[#1DA1F2]/30 bg-[#1DA1F2]/10 p-3">
                                         <p className="text-xs text-[var(--color-text-secondary)] mb-2">Connect X to accept dares or submit proof</p>
                                         <button
@@ -516,7 +550,7 @@ export default function DareDetail() {
                                 )}
 
                                 {/* Accept (for open dares or targeted user) */}
-                                {dare.status === 'CREATED' && !isChallenger && (
+                                {displayStatus === 'CREATED' && !isChallenger && (
                                     <button
                                         onClick={handleAccept}
                                         disabled={!!actionLoading || !xLinked}
@@ -527,7 +561,7 @@ export default function DareDetail() {
                                 )}
 
                                 {/* Submit Proof (for active dares if you're the daree) */}
-                                {dare.status === 'ACTIVE' && isDaree && !showProofUpload && (
+                                {displayStatus === 'ACTIVE' && isDaree && !showProofUpload && (
                                     <button
                                         onClick={() => setShowProofUpload(true)}
                                         disabled={!xLinked}
@@ -538,7 +572,7 @@ export default function DareDetail() {
                                 )}
 
                                 {/* Approve/Reject (for challenger when proof submitted) */}
-                                {dare.status === 'PROOF_SUBMITTED' && isChallenger && (
+                                {displayStatus === 'PROOF_SUBMITTED' && isChallenger && (
                                     <>
                                         <button
                                             onClick={handleApprove}
@@ -558,7 +592,7 @@ export default function DareDetail() {
                                 )}
 
                                 {/* Refuse (for targeted daree on created dares) */}
-                                {dare.status === 'CREATED' && isDaree && (
+                                {displayStatus === 'CREATED' && isDaree && (
                                     <button
                                         onClick={handleRefuse}
                                         disabled={!!actionLoading}
@@ -569,7 +603,7 @@ export default function DareDetail() {
                                 )}
 
                                 {/* Cancel (for challenger on created dares) */}
-                                {dare.status === 'CREATED' && isChallenger && (
+                                {displayStatus === 'CREATED' && isChallenger && (
                                     <button
                                         onClick={handleCancel}
                                         disabled={!!actionLoading}
