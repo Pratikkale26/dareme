@@ -114,6 +114,7 @@ export default function DareDetail() {
             const { signature: sigBytes } = await signAndSendTransaction({
                 transaction: serializedTx,
                 wallet: solanaWallet,
+                chain: 'solana:devnet',
             });
             const signature = bs58.encode(sigBytes);
 
@@ -241,6 +242,7 @@ export default function DareDetail() {
             const { signature: sigBytes } = await signAndSendTransaction({
                 transaction: serializedTx,
                 wallet: solanaWallet!,
+                chain: 'solana:devnet',
             });
             const signature = bs58.encode(sigBytes);
 

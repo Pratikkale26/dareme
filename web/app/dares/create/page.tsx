@@ -153,6 +153,7 @@ export default function CreateDare() {
             const { signature: sigBytes } = await signAndSendTransaction({
                 transaction: serializedTx,
                 wallet: solanaWallet!,
+                chain: 'solana:devnet',
             });
             const signature = bs58.encode(sigBytes);
             setTxHash(signature);

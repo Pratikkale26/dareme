@@ -2,10 +2,14 @@
 
 import { PrivyProvider, usePrivy } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
+import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
 import { useEffect } from 'react';
 import { api } from '../lib/api';
 
 const solanaConnectors = toSolanaWalletConnectors();
+
+const DEVNET_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+const DEVNET_WSS_URL = DEVNET_RPC_URL.replace('https://', 'wss://');
 
 /** Inner component that wires the Privy auth token to the API client */
 function ApiTokenSync({ children }: { children: React.ReactNode }) {
@@ -47,6 +51,22 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                 externalWallets: {
                     solana: {
                         connectors: solanaConnectors,
+                    },
+                },
+
+                // Solana RPC configuration — tell Privy how to reach Devnet
+                solana: {
+                    rpcs: {
+                        'solana:devnet': {
+                            rpc: createSolanaRpc(DEVNET_RPC_URL),
+                            rpcSubscriptions: createSolanaRpcSubscriptions(DEVNET_WSS_URL),
+                            blockExplorerUrl: 'https://solscan.io/?cluster=devnet',
+                        },
+                        'solana:mainnet': {
+                            rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+                            rpcSubscriptions: createSolanaRpcSubscriptions('wss://api.mainnet-beta.solana.com'),
+                            blockExplorerUrl: 'https://solscan.io',
+                        },
                     },
                 },
             }}
