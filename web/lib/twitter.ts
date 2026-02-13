@@ -25,8 +25,9 @@ export function buildShareUrl(text: string, url?: string): string {
 }
 
 /** Compose share text for a newly created dare */
-export function buildDareShareText(title: string, solAmount: number): string {
-    return `🔥 I just created a dare on DareMe!\n\n"${title}" — ${solAmount} SOL staked in on-chain escrow.\n\nAccept it if you dare 👇\n#DareMe #Solana`;
+export function buildDareShareText(title: string, solAmount: number, targetHandle?: string): string {
+    const mention = targetHandle ? `@${targetHandle} ` : '';
+    return `. ${mention}🔥 I just created a dare on DareMe!\n\n"${title}" — ${solAmount} SOL staked in on-chain escrow.\n\nAccept it if you dare 👇\n#DareMe #Solana`;
 }
 
 /** Compose share text for a completed proof submission */

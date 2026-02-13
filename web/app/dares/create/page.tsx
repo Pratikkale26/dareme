@@ -198,7 +198,7 @@ export default function CreateDare() {
     };
 
     const handleShareOnX = () => {
-        const text = buildDareShareText(form.title.trim(), solAmount);
+        const text = buildDareShareText(form.title.trim(), solAmount, form.targetXHandle);
         const url = createdDareId ? getDareUrl(createdDareId) : undefined;
         const shareUrl = buildShareUrl(text, url);
         window.open(shareUrl, '_blank', 'width=550,height=420');
