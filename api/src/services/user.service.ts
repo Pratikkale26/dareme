@@ -116,6 +116,24 @@ export async function getUserByWallet(walletAddress: string) {
 }
 
 /**
+ * Get user by X/Twitter handle (case-insensitive).
+ */
+export async function getUserByXHandle(xHandle: string) {
+    return prisma.user.findFirst({
+        where: { xHandle: { equals: xHandle, mode: "insensitive" } },
+        select: {
+            id: true,
+            walletAddress: true,
+            xHandle: true,
+            displayName: true,
+            avatarUrl: true,
+            bio: true,
+            createdAt: true,
+        },
+    });
+}
+
+/**
  * Update user profile fields.
  */
 export async function updateUserProfile(

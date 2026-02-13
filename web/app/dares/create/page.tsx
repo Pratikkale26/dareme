@@ -128,8 +128,23 @@ export default function CreateDare() {
             const anchorDareType = form.dareType === 'DIRECT_DARE' ? 'DirectDare' : 'PublicBounty';
             const anchorWinnerSelection = form.winnerSelection === 'CHALLENGER_SELECT' ? 'ChallengerSelect' : 'CommunityVote';
 
-            // For target daree: use zero pubkey for open dares (matched by X handle off-chain)
-            const targetDaree = PUBKEY_ZERO;
+            // For target daree: resolve wallet address from X handle if set
+            let targetDaree = PUBKEY_ZERO;
+            const cleanedHandle = form.targetXHandle.replace('@', '').trim();
+            if (cleanedHandle && form.dareType === 'DIRECT_DARE') {
+                try {
+                    const { user: targetUser } = await api.getUserByHandle(cleanedHandle);
+                    if (targetUser?.walletAddress) {
+                        targetDaree = new PublicKey(targetUser.walletAddress);
+                    } else {
+                        // User exists but no wallet linked yet — proceed with zero pubkey
+                        console.warn('Target user found but has no wallet address');
+                    }
+                } catch {
+                    // User not found in DB — proceed with zero pubkey (they haven't signed up yet)
+                    console.warn('Target user not found in DB, proceeding without on-chain target');
+                }
+            }
 
             // Build the createDare instruction
             const { instruction, darePDA, vaultPDA } = buildCreateDareInstruction({

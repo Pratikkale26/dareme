@@ -65,6 +65,10 @@ class ApiClient {
         return this.request<{ user: User }>("GET", `/api/users/${id}`);
     }
 
+    getUserByHandle(handle: string) {
+        return this.request<{ user: User }>("GET", `/api/users/handle/${handle.replace('@', '')}`);
+    }
+
     getUserByWallet(address: string) {
         return this.request<{ user: User }>("GET", `/api/users/wallet/${address}`);
     }

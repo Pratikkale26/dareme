@@ -3,6 +3,8 @@ import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
 import { validateBody, validateQuery } from "../middleware/validate";
 import { sha256 } from "../lib/hash";
+import { notifyUser } from "../services/notification.service";
+import { getUserByXHandle } from "../services/user.service";
 import {
     createDare,
     getDareById,
@@ -56,6 +58,24 @@ router.post(
                 tags: body.tags,
                 targetXHandle: body.targetXHandle,
             });
+
+            // Notify targeted user if applicable
+            if (body.targetXHandle) {
+                try {
+                    const targetUser = await getUserByXHandle(body.targetXHandle.replace('@', ''));
+                    if (targetUser) {
+                        await notifyUser(
+                            targetUser.id,
+                            dare.id,
+                            "DARE_RECEIVED",
+                            "You've been dared! 🎯",
+                            `Someone dared you: "${body.title}". Accept or refuse it!`
+                        );
+                    }
+                } catch (err) {
+                    console.error("Failed to notify target user:", err);
+                }
+            }
 
             res.status(201).json({ dare: serializeDare(dare) });
         } catch (err: any) {

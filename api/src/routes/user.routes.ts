@@ -5,6 +5,7 @@ import { validateBody, validateQuery } from "../middleware/validate";
 import {
     getUserById,
     getUserByWallet,
+    getUserByXHandle,
     updateUserProfile,
     getUserDares,
 } from "../services/user.service";
@@ -49,6 +50,23 @@ router.patch(
         }
     }
 );
+
+// ── GET /api/users/handle/:handle ─────────────────────────────────────────
+// Lookup user by X/Twitter handle (for resolving target wallet).
+router.get("/handle/:handle", async (req, res) => {
+    try {
+        const handle = req.params.handle.replace('@', '');
+        const user = await getUserByXHandle(handle);
+        if (!user) {
+            res.status(404).json({ error: "User not found for this X handle" });
+            return;
+        }
+        res.json({ user });
+    } catch (err) {
+        console.error("Get user by handle error:", err);
+        res.status(500).json({ error: "Failed to fetch user" });
+    }
+});
 
 // ── GET /api/users/:id ────────────────────────────────────────────────────
 // Public profile by user ID.
