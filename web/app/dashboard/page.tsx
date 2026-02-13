@@ -4,47 +4,41 @@ import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import Link from 'next/link';
+import Navbar from '../../components/Navbar';
+import DareCard from '../../components/DareCard';
+import { useDareFeed, useUser } from '../../hooks/useApi';
+import { truncateAddress } from '../../lib/utils';
 
 export default function Dashboard() {
-    const { ready, authenticated, user, logout } = usePrivy();
+    const { ready, authenticated, user: privyUser, logout } = usePrivy();
     const { ready: walletsReady, wallets } = useWallets();
     const router = useRouter();
     const [balance, setBalance] = useState<number | null>(null);
     const [loadingBalance, setLoadingBalance] = useState(false);
+    const { user: dbUser } = useUser();
+    const { data: myDares, loading: daresLoading } = useDareFeed({ limit: 6, sort: 'newest' });
 
-    // Redirect to login if not authenticated
     useEffect(() => {
         if (ready && !authenticated) {
             router.push('/');
         }
     }, [ready, authenticated, router]);
 
-    // Get the wallet address from the Privy user object (more reliable than useWallets)
     const walletAddress = useMemo(() => {
-        // First try: get from user's linked accounts
-        if (user?.linkedAccounts) {
-            const solanaWallet = user.linkedAccounts.find(
+        if (privyUser?.linkedAccounts) {
+            const solanaWallet = privyUser.linkedAccounts.find(
                 (account) => account.type === 'wallet' && (account as any).chainType === 'solana'
             );
             if (solanaWallet && 'address' in solanaWallet) {
                 return (solanaWallet as any).address as string;
             }
         }
-
-        // Second try: get from user.wallet
-        if (user?.wallet?.address) {
-            return user.wallet.address;
-        }
-
-        // Third try: get from useWallets hook
-        if (walletsReady && wallets.length > 0) {
-            return wallets[0].address;
-        }
-
+        if (privyUser?.wallet?.address) return privyUser.wallet.address;
+        if (walletsReady && wallets.length > 0) return wallets[0].address;
         return null;
-    }, [user, walletsReady, wallets]);
+    }, [privyUser, walletsReady, wallets]);
 
-    // Fetch balance
     useEffect(() => {
         async function fetchBalance() {
             if (!walletAddress) return;
@@ -53,11 +47,9 @@ export default function Dashboard() {
                 const connection = new Connection(
                     process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com'
                 );
-                const pubkey = new PublicKey(walletAddress);
-                const lamports = await connection.getBalance(pubkey);
+                const lamports = await connection.getBalance(new PublicKey(walletAddress));
                 setBalance(lamports / LAMPORTS_PER_SOL);
-            } catch (err) {
-                console.error('Failed to fetch balance:', err);
+            } catch {
                 setBalance(0);
             } finally {
                 setLoadingBalance(false);
@@ -74,51 +66,52 @@ export default function Dashboard() {
         );
     }
 
-    // Extract user info
-    const twitterHandle = user?.twitter?.username;
-    const googleEmail = user?.google?.email;
-    const displayName = twitterHandle
+    const twitterHandle = privyUser?.twitter?.username;
+    const googleEmail = privyUser?.google?.email;
+    const displayName = dbUser?.displayName || twitterHandle
         ? `@${twitterHandle}`
-        : googleEmail
-            ? googleEmail
-            : walletAddress
-                ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
-                : 'Anon';
+        : googleEmail || (walletAddress ? truncateAddress(walletAddress) : 'Anon');
 
     return (
         <div className="min-h-screen bg-[var(--color-bg)]">
-            {/* Header */}
-            <header className="border-b border-[var(--color-border)] px-6 py-4">
-                <div className="mx-auto flex max-w-6xl items-center justify-between">
-                    <h1 className="text-2xl font-bold text-white">
-                        🔥 Dare<span className="text-[#FF6B35]">Me</span>
-                    </h1>
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm text-[var(--color-text-secondary)]">
-                            {displayName}
-                        </span>
-                        <button
-                            onClick={logout}
-                            className="cursor-pointer rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text-secondary)] transition-colors hover:border-[#FF6B35] hover:text-white"
+            <Navbar />
+
+            <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+                {/* Welcome + Quick Actions */}
+                <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-white sm:text-3xl">
+                            Welcome back{twitterHandle ? `, @${twitterHandle}` : ''} 👋
+                        </h1>
+                        <p className="mt-1 text-[var(--color-text-secondary)]">
+                            Ready to create or accept some dares?
+                        </p>
+                    </div>
+                    <div className="flex gap-3">
+                        <Link
+                            href="/dares/create"
+                            className="inline-flex items-center gap-2 rounded-xl bg-[#FF6B35] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#FF8A5C] hover:shadow-lg hover:shadow-[#FF6B35]/20"
                         >
-                            Logout
-                        </button>
+                            📝 Create Dare
+                        </Link>
+                        <Link
+                            href="/dares"
+                            className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-5 py-2.5 text-sm font-medium text-[var(--color-text-secondary)] transition-all hover:border-[var(--color-text-secondary)] hover:text-white"
+                        >
+                            🔥 Browse Feed
+                        </Link>
                     </div>
                 </div>
-            </header>
 
-            {/* Main Content */}
-            <main className="mx-auto max-w-6xl px-6 py-8">
                 {/* Wallet Card */}
                 <div className="mb-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6">
-                    <h2 className="mb-4 text-lg font-semibold text-white">Your Wallet</h2>
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-6 sm:grid-cols-3">
                         <div>
                             <p className="mb-1 text-xs uppercase tracking-wider text-[var(--color-text-secondary)]">
-                                Address
+                                Wallet
                             </p>
-                            <p className="font-mono text-sm text-white break-all">
-                                {walletAddress || (walletsReady ? 'No wallet found' : 'Loading wallet...')}
+                            <p className="font-mono text-sm text-white">
+                                {walletAddress ? truncateAddress(walletAddress, 6) : 'Loading...'}
                             </p>
                         </div>
                         <div>
@@ -126,81 +119,69 @@ export default function Dashboard() {
                                 Balance (Devnet)
                             </p>
                             <p className="text-2xl font-bold text-white">
-                                {!walletAddress ? (
-                                    <span className="text-sm text-[var(--color-text-secondary)]">—</span>
-                                ) : loadingBalance ? (
-                                    <span className="text-sm text-[var(--color-text-secondary)]">
-                                        Loading...
-                                    </span>
+                                {!walletAddress ? '—' : loadingBalance ? (
+                                    <span className="text-sm text-[var(--color-text-secondary)]">Loading...</span>
                                 ) : (
-                                    <>
-                                        {balance !== null ? balance.toFixed(4) : '—'}{' '}
-                                        <span className="text-sm font-normal text-[var(--color-text-secondary)]">
-                                            SOL
-                                        </span>
-                                    </>
+                                    <>{balance?.toFixed(4) ?? '—'} <span className="text-sm font-normal text-[var(--color-text-secondary)]">SOL</span></>
                                 )}
                             </p>
                         </div>
+                        <div>
+                            <p className="mb-1 text-xs uppercase tracking-wider text-[var(--color-text-secondary)]">
+                                Connected Account
+                            </p>
+                            <div className="flex items-center gap-2">
+                                {twitterHandle && (
+                                    <span className="inline-flex items-center gap-1 rounded-lg bg-[var(--color-bg)]/50 px-2.5 py-1 text-xs text-[var(--color-text-secondary)]">
+                                        𝕏 @{twitterHandle}
+                                    </span>
+                                )}
+                                {googleEmail && (
+                                    <span className="inline-flex items-center gap-1 rounded-lg bg-[var(--color-bg)]/50 px-2.5 py-1 text-xs text-[var(--color-text-secondary)]">
+                                        ✉️ {googleEmail}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                     </div>
-                    {user?.twitter && (
-                        <div className="mt-4 flex items-center gap-2 rounded-lg bg-[var(--color-bg)]/50 px-3 py-2">
-                            <svg viewBox="0 0 24 24" className="h-4 w-4 fill-[#1DA1F2]">
-                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                            </svg>
-                            <span className="text-sm text-[var(--color-text-secondary)]">
-                                Connected as <span className="text-white">@{user.twitter.username}</span>
-                            </span>
+                </div>
+
+                {/* Recent Dares */}
+                <div>
+                    <div className="mb-4 flex items-center justify-between">
+                        <h2 className="text-lg font-semibold text-white">Recent Dares</h2>
+                        <Link href="/dares" className="text-sm text-[#FF6B35] hover:underline">
+                            View all →
+                        </Link>
+                    </div>
+
+                    {daresLoading ? (
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="h-48 animate-pulse rounded-xl bg-[var(--color-bg-card)]" />
+                            ))}
+                        </div>
+                    ) : myDares && myDares.dares.length > 0 ? (
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {myDares.dares.map((dare) => (
+                                <DareCard key={dare.id} dare={dare} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="rounded-xl border border-dashed border-[var(--color-border)] p-12 text-center">
+                            <div className="mb-4 text-5xl">🏜️</div>
+                            <h3 className="mb-2 text-lg font-semibold text-white">No dares yet</h3>
+                            <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
+                                Be the first to create a dare!
+                            </p>
+                            <Link
+                                href="/dares/create"
+                                className="inline-flex items-center gap-2 rounded-xl bg-[#FF6B35] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#FF8A5C]"
+                            >
+                                📝 Create Your First Dare
+                            </Link>
                         </div>
                     )}
-                </div>
-
-                {/* Action Cards */}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {/* Create Dare */}
-                    <div className="group cursor-pointer rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6 transition-all hover:border-[#FF6B35]/50 hover:bg-[var(--color-bg-card-hover)]">
-                        <div className="mb-3 text-3xl">📝</div>
-                        <h3 className="mb-1 text-lg font-semibold text-white">Create a Dare</h3>
-                        <p className="text-sm text-[var(--color-text-secondary)]">
-                            Challenge someone and stake SOL as a bounty.
-                        </p>
-                        <div className="mt-4 text-sm font-medium text-[#FF6B35] opacity-0 transition-opacity group-hover:opacity-100">
-                            Coming soon →
-                        </div>
-                    </div>
-
-                    {/* Browse Dares */}
-                    <div className="group cursor-pointer rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6 transition-all hover:border-[#FF6B35]/50 hover:bg-[var(--color-bg-card-hover)]">
-                        <div className="mb-3 text-3xl">🔥</div>
-                        <h3 className="mb-1 text-lg font-semibold text-white">Browse Dares</h3>
-                        <p className="text-sm text-[var(--color-text-secondary)]">
-                            Find active dares and earn SOL by completing them.
-                        </p>
-                        <div className="mt-4 text-sm font-medium text-[#FF6B35] opacity-0 transition-opacity group-hover:opacity-100">
-                            Coming soon →
-                        </div>
-                    </div>
-
-                    {/* My Profile */}
-                    <div className="group cursor-pointer rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6 transition-all hover:border-[#FF6B35]/50 hover:bg-[var(--color-bg-card-hover)]">
-                        <div className="mb-3 text-3xl">👤</div>
-                        <h3 className="mb-1 text-lg font-semibold text-white">My Profile</h3>
-                        <p className="text-sm text-[var(--color-text-secondary)]">
-                            View your dare history and reputation score.
-                        </p>
-                        <div className="mt-4 text-sm font-medium text-[#FF6B35] opacity-0 transition-opacity group-hover:opacity-100">
-                            Coming soon →
-                        </div>
-                    </div>
-                </div>
-
-                {/* Empty state - Active Dares */}
-                <div className="mt-8 rounded-xl border border-dashed border-[var(--color-border)] p-12 text-center">
-                    <div className="mb-4 text-5xl">🏜️</div>
-                    <h3 className="mb-2 text-lg font-semibold text-white">No active dares yet</h3>
-                    <p className="text-sm text-[var(--color-text-secondary)]">
-                        Once the smart contract is deployed, you&apos;ll see live dares here.
-                    </p>
                 </div>
             </main>
         </div>
