@@ -215,11 +215,19 @@ export default function DareDetail() {
             );
 
             // 2. Upload file directly to S3
-            await fetch(uploadUrl, {
+            const uploadRes = await fetch(uploadUrl, {
                 method: 'PUT',
-                headers: { 'Content-Type': proofFile.type },
+                headers: {
+                    'Content-Type': proofFile.type,
+                    'x-amz-acl': 'public-read'
+                },
                 body: proofFile,
             });
+
+            if (!uploadRes.ok) {
+                console.error('Upload failed:', uploadRes.status, await uploadRes.text());
+                throw new Error('Failed to upload proof media');
+            }
 
             // 3. Compute proof hash
             const fileBuffer = await proofFile.arrayBuffer();
@@ -563,13 +571,13 @@ export default function DareDetail() {
                                 )}
 
                                 {/* Submit Proof (for active dares if you're the daree) */}
-                                {displayStatus === 'ACTIVE' && isDaree && !showProofUpload && (
+                                {(displayStatus === 'ACTIVE' || displayStatus === 'REJECTED') && isDaree && !showProofUpload && (
                                     <button
                                         onClick={() => setShowProofUpload(true)}
                                         disabled={!xLinked}
                                         className="w-full cursor-pointer rounded-xl bg-[#FF6B35] py-3 text-sm font-semibold text-white transition-all hover:bg-[#FF8A5C] disabled:opacity-50"
                                     >
-                                        📹 Submit Proof
+                                        📹 {displayStatus === 'REJECTED' ? 'Resubmit Proof' : 'Submit Proof'}
                                     </button>
                                 )}
 
