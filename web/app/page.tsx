@@ -15,91 +15,257 @@ export default function Home() {
   }, [ready, authenticated, router]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--color-bg)] px-4">
-      {/* Background gradient effects */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-[#FF6B35]/10 blur-[120px]" />
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-[#FF6B35]/5 blur-[120px]" />
+    <div className="min-h-screen bg-[var(--color-bg)] text-white overflow-hidden">
+      {/* Background effects */}
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-[#FF6B35]/8 blur-[150px]" />
+        <div className="absolute top-1/2 -left-40 h-[400px] w-[400px] rounded-full bg-[#FF6B35]/5 blur-[120px]" />
+        <div className="absolute -bottom-20 right-1/3 h-[300px] w-[300px] rounded-full bg-purple-500/5 blur-[100px]" />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 flex max-w-lg flex-col items-center text-center">
-        {/* Logo / Brand */}
-        <div className="mb-2 text-5xl">🔥</div>
-        <h1 className="mb-3 text-5xl font-extrabold tracking-tight text-white">
-          Dare<span className="text-[#FF6B35]">Me</span>
-        </h1>
-        <p className="mb-8 text-lg leading-relaxed text-[var(--color-text-secondary)]">
-          Put your money where your mouth is.
-          <br />
-          <span className="text-[var(--color-text)]">
-            Create dares. Stake SOL. Prove yourself.
-          </span>
-        </p>
-
-        {/* Login Button */}
+      {/* Nav */}
+      <nav className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🔥</span>
+          <span className="text-xl font-bold">Dare<span className="text-[#FF6B35]">Me</span></span>
+        </div>
         <button
           onClick={login}
           disabled={!ready}
-          className="group relative mb-6 cursor-pointer overflow-hidden rounded-xl bg-[#FF6B35] px-8 py-4 text-lg font-semibold text-white transition-all duration-300 hover:bg-[#FF8A5C] hover:shadow-[0_0_30px_rgba(255,107,53,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="cursor-pointer rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-white transition-all hover:border-[#FF6B35] hover:bg-[#FF6B35]/10 disabled:opacity-50"
         >
-          <span className="relative z-10">
-            {!ready ? 'Loading...' : 'Get Started →'}
-          </span>
-          <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+          Launch App →
         </button>
+      </nav>
 
-        {/* Supported login methods */}
-        <div className="flex items-center gap-4 text-sm text-[var(--color-text-secondary)]">
-          <span className="flex items-center gap-1.5">
-            <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-            </svg>
-            Twitter
-          </span>
-          <span className="text-[var(--color-border)]">•</span>
-          <span className="flex items-center gap-1.5">
-            <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-            </svg>
-            Google
-          </span>
-          <span className="text-[var(--color-border)]">•</span>
-          <span className="flex items-center gap-1.5">
-            <svg viewBox="0 0 40 40" className="h-4 w-4 fill-current">
-              <path d="M34.36 10.58a17.79 17.79 0 0 0-5.72-4.42A18.3 18.3 0 0 0 20 4a18.3 18.3 0 0 0-8.64 2.16 17.79 17.79 0 0 0-5.72 4.42c-1.2 1.4-2.12 2.9-2.78 4.5a13.2 13.2 0 0 0-.86 4.42c0 2.75.7 5.42 2.07 8.02a21.67 21.67 0 0 0 5.56 6.98l.46.38h.02l8.35-8.52.54-.55a5.67 5.67 0 0 0 1.72-4.09c0-1.63-.61-3.05-1.84-4.28a5.75 5.75 0 0 0-4.22-1.85c-1.65 0-3.07.62-4.28 1.85l-.5.55 2.22 2.27.5-.52a2.71 2.71 0 0 1 2.06-.86c.81 0 1.5.29 2.08.87.57.58.86 1.27.86 2.07 0 .8-.29 1.49-.86 2.07l-6.38 6.52a14.68 14.68 0 0 1-2.7-4.12 12.4 12.4 0 0 1-1.02-4.97c0-2.3.78-4.5 2.34-6.6a14.08 14.08 0 0 1 5.85-4.5A14.81 14.81 0 0 1 20 7.29c2.35 0 4.58.54 6.7 1.62a14.08 14.08 0 0 1 5.86 4.5c1.55 2.1 2.33 4.3 2.33 6.6 0 1.74-.34 3.38-1.02 4.92a14.41 14.41 0 0 1-2.62 4.07l-7.8 7.96 2.24 2.28 7.75-7.91a17.8 17.8 0 0 0 3.4-5.3c.88-2 1.33-4.04 1.33-6.12 0-1.57-.29-3.08-.86-4.52a13.67 13.67 0 0 0-2.95-4.81z" />
-            </svg>
-            Phantom
-          </span>
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* HERO */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <section className="relative z-10 mx-auto max-w-4xl px-6 pt-20 pb-24 text-center sm:pt-28 sm:pb-32">
+        {/* Pill badge */}
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-1.5 text-sm text-[var(--color-text-secondary)]">
+          <span className="h-2 w-2 rounded-full bg-[#22C55E] animate-pulse" />
+          Live on Solana Devnet
         </div>
 
-        {/* How it works */}
-        <div className="mt-16 grid grid-cols-4 gap-3 text-center text-xs">
+        <h1 className="mb-6 text-5xl font-extrabold tracking-tight sm:text-7xl">
+          Put Your Money{' '}
+          <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF8A5C] bg-clip-text text-transparent">
+            Where Your Mouth Is
+          </span>
+        </h1>
+
+        <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-[var(--color-text-secondary)] sm:text-xl">
+          Dare your friends to do wild things. Stake real SOL. Prove it on video.
+          Trustless escrow — no middleman, instant settlement.
+        </p>
+
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <button
+            onClick={login}
+            disabled={!ready}
+            className="group relative cursor-pointer overflow-hidden rounded-xl bg-[#FF6B35] px-8 py-4 text-lg font-semibold text-white transition-all hover:bg-[#FF8A5C] hover:shadow-[0_0_40px_rgba(255,107,53,0.3)] disabled:opacity-50"
+          >
+            <span className="relative z-10">{!ready ? 'Loading...' : 'Start Daring →'}</span>
+            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+          </button>
+          <a
+            href="#how-it-works"
+            className="rounded-xl border border-[var(--color-border)] px-8 py-4 text-lg font-medium text-[var(--color-text-secondary)] transition-all hover:border-[var(--color-text-secondary)] hover:text-white"
+          >
+            How It Works
+          </a>
+        </div>
+
+        {/* Mini stats */}
+        <div className="mt-16 flex justify-center gap-8 sm:gap-16">
           {[
-            { emoji: '📝', label: 'Create' },
-            { emoji: '🤝', label: 'Accept' },
-            { emoji: '📹', label: 'Prove' },
-            { emoji: '💰', label: 'Settle' },
-          ].map((step, i) => (
-            <div key={step.label} className="flex flex-col items-center gap-1">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--color-bg-card)] text-xl">
-                {step.emoji}
-              </div>
-              <span className="text-[var(--color-text-secondary)]">
-                {step.label}
-              </span>
-              {i < 3 && (
-                <div className="absolute ml-16 mt-3 hidden text-[var(--color-border)] sm:block">
-                  →
-                </div>
-              )}
+            { value: '100%', label: 'Trustless' },
+            { value: '<1s', label: 'Settlement' },
+            { value: '$0.001', label: 'Avg Fee' },
+          ].map((stat) => (
+            <div key={stat.label} className="text-center">
+              <div className="text-2xl font-bold text-white sm:text-3xl">{stat.value}</div>
+              <div className="mt-1 text-xs text-[var(--color-text-secondary)] sm:text-sm">{stat.label}</div>
             </div>
           ))}
         </div>
-      </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* HOW IT WORKS */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <section id="how-it-works" className="relative z-10 border-t border-[var(--color-border)] bg-[var(--color-bg-card)]/50 py-20 sm:py-28">
+        <div className="mx-auto max-w-5xl px-6">
+          <h2 className="mb-4 text-center text-3xl font-bold sm:text-4xl">
+            How It Works
+          </h2>
+          <p className="mb-16 text-center text-[var(--color-text-secondary)]">
+            Four simple steps. Zero trust required.
+          </p>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                step: '01',
+                emoji: '📝',
+                title: 'Create',
+                desc: 'Describe your dare, set the stakes, and deposit SOL into a trustless escrow.',
+              },
+              {
+                step: '02',
+                emoji: '🤝',
+                title: 'Accept',
+                desc: 'The daree accepts the challenge. The countdown begins — no backing out.',
+              },
+              {
+                step: '03',
+                emoji: '📹',
+                title: 'Prove',
+                desc: 'Record yourself completing the dare. Upload video proof directly to the platform.',
+              },
+              {
+                step: '04',
+                emoji: '💰',
+                title: 'Settle',
+                desc: 'Challenger approves the proof. SOL is instantly released from escrow. Done.',
+              },
+            ].map((item) => (
+              <div
+                key={item.step}
+                className="group rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6 transition-all hover:border-[#FF6B35]/40"
+              >
+                <div className="mb-3 text-xs font-bold text-[#FF6B35]">STEP {item.step}</div>
+                <div className="mb-3 text-3xl">{item.emoji}</div>
+                <h3 className="mb-2 text-lg font-semibold text-white">{item.title}</h3>
+                <p className="text-sm leading-relaxed text-[var(--color-text-secondary)]">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* CHALLENGE TYPES */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <section className="relative z-10 py-20 sm:py-28">
+        <div className="mx-auto max-w-5xl px-6">
+          <h2 className="mb-4 text-center text-3xl font-bold sm:text-4xl">
+            Challenge Types
+          </h2>
+          <p className="mb-16 text-center text-[var(--color-text-secondary)]">
+            Every dare is an on-chain smart contract
+          </p>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                emoji: '🎯',
+                title: 'Direct Dare',
+                desc: 'One-on-one challenge. Dare a specific person by their X handle or wallet.',
+                example: '"I dare @john to eat a ghost pepper for 0.5 SOL"',
+                color: '#FF6B35',
+              },
+              {
+                emoji: '🏆',
+                title: 'Public Bounty',
+                desc: 'Open challenge. First to complete the dare claims the bounty.',
+                example: '"First to run 5K in under 25 min gets 0.2 SOL"',
+                color: '#22C55E',
+              },
+              {
+                emoji: '👥',
+                title: 'Crowdfunded',
+                desc: 'Community pools funds to dare someone. Coming soon.',
+                example: '"We\'ll pool 5 SOL if @dev ships this in 48h"',
+                color: '#A855F7',
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6 transition-all hover:border-[var(--color-border)] hover:bg-[var(--color-bg-card-hover)]"
+              >
+                <div className="mb-3 text-4xl">{item.emoji}</div>
+                <h3 className="mb-2 text-lg font-semibold text-white">{item.title}</h3>
+                <p className="mb-4 text-sm text-[var(--color-text-secondary)]">{item.desc}</p>
+                <div
+                  className="rounded-lg bg-[var(--color-bg)]/80 px-3 py-2 text-xs italic"
+                  style={{ color: item.color }}
+                >
+                  {item.example}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* TRUST & SECURITY */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <section className="relative z-10 border-t border-[var(--color-border)] bg-[var(--color-bg-card)]/50 py-20 sm:py-28">
+        <div className="mx-auto max-w-4xl px-6">
+          <h2 className="mb-16 text-center text-3xl font-bold sm:text-4xl">
+            Why <span className="text-[#FF6B35]">Solana</span>?
+          </h2>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            {[
+              { icon: '🔒', title: 'Trustless Escrow', desc: 'Funds locked in a Solana PDA. No middleman. No counterparty risk.' },
+              { icon: '⚡', title: 'Instant Settlement', desc: 'Sub-second finality. SOL released the moment dare is approved.' },
+              { icon: '💸', title: 'Near-Zero Fees', desc: '$0.001 per transaction. A $2 dare is actually viable.' },
+              { icon: '🌍', title: 'Borderless', desc: 'Dare anyone, anywhere. No banks, no borders, no friction.' },
+            ].map((item) => (
+              <div key={item.title} className="flex gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
+                <div className="text-2xl">{item.icon}</div>
+                <div>
+                  <h3 className="mb-1 font-semibold text-white">{item.title}</h3>
+                  <p className="text-sm text-[var(--color-text-secondary)]">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* CTA */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <section className="relative z-10 py-20 sm:py-28">
+        <div className="mx-auto max-w-2xl px-6 text-center">
+          <div className="mb-6 text-5xl">🔥</div>
+          <h2 className="mb-4 text-3xl font-bold sm:text-4xl">Ready to Dare?</h2>
+          <p className="mb-8 text-[var(--color-text-secondary)]">
+            Sign in with X, Google, or connect your Phantom wallet. It takes 10 seconds.
+          </p>
+          <button
+            onClick={login}
+            disabled={!ready}
+            className="group relative cursor-pointer overflow-hidden rounded-xl bg-[#FF6B35] px-10 py-4 text-lg font-semibold text-white transition-all hover:bg-[#FF8A5C] hover:shadow-[0_0_40px_rgba(255,107,53,0.3)] disabled:opacity-50"
+          >
+            <span className="relative z-10">{!ready ? 'Loading...' : 'Start Daring →'}</span>
+            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+          </button>
+
+          <div className="mt-6 flex items-center justify-center gap-4 text-sm text-[var(--color-text-secondary)]">
+            <span>Twitter</span>
+            <span className="text-[var(--color-border)]">•</span>
+            <span>Google</span>
+            <span className="text-[var(--color-border)]">•</span>
+            <span>Phantom</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-[var(--color-border)] py-8">
+        <div className="mx-auto max-w-6xl px-6 flex items-center justify-between text-sm text-[var(--color-text-secondary)]">
+          <span>🔥 DareMe — Powered by Solana</span>
+          <div className="flex gap-4">
+            <a href="https://github.com/Pratikkale26/dareme" target="_blank" className="hover:text-white transition-colors">GitHub</a>
+            <a href="https://twitter.com" target="_blank" className="hover:text-white transition-colors">Twitter</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
