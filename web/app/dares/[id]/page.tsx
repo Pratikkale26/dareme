@@ -547,7 +547,7 @@ export default function DareDetail() {
                         {authenticated && walletPubkey && (
                             <div className="space-y-2">
                                 {/* X Account Warning */}
-                                {!xLinked && (displayStatus === 'CREATED' || displayStatus === 'ACTIVE') && (
+                                {!xLinked && (displayStatus === 'CREATED' || displayStatus === 'ACTIVE' || displayStatus === 'REJECTED') && (
                                     <div className="rounded-xl border border-[#1DA1F2]/30 bg-[#1DA1F2]/10 p-3">
                                         <p className="text-xs text-[var(--color-text-secondary)] mb-2">Connect X to accept dares or submit proof</p>
                                         <button
@@ -559,8 +559,8 @@ export default function DareDetail() {
                                     </div>
                                 )}
 
-                                {/* Accept (for open dares or targeted user) */}
-                                {displayStatus === 'CREATED' && !isChallenger && (
+                                {/* Accept (ONLY for Direct Dares — contract blocks accept for Public Bounties) */}
+                                {displayStatus === 'CREATED' && !isChallenger && dare.dareType === 'DIRECT_DARE' && (
                                     <button
                                         onClick={handleAccept}
                                         disabled={!!actionLoading || !xLinked}
@@ -570,14 +570,25 @@ export default function DareDetail() {
                                     </button>
                                 )}
 
-                                {/* Submit Proof (for active dares if you're the daree) */}
-                                {(displayStatus === 'ACTIVE' || displayStatus === 'REJECTED') && isDaree && !showProofUpload && (
+                                {/* Submit Proof — Direct Dare: daree only, status ACTIVE/REJECTED */}
+                                {dare.dareType === 'DIRECT_DARE' && (displayStatus === 'ACTIVE' || displayStatus === 'REJECTED') && isDaree && !showProofUpload && (
                                     <button
                                         onClick={() => setShowProofUpload(true)}
                                         disabled={!xLinked}
                                         className="w-full cursor-pointer rounded-xl bg-[#FF6B35] py-3 text-sm font-semibold text-white transition-all hover:bg-[#FF8A5C] disabled:opacity-50"
                                     >
                                         📹 {displayStatus === 'REJECTED' ? 'Resubmit Proof' : 'Submit Proof'}
+                                    </button>
+                                )}
+
+                                {/* Submit Proof — Public Bounty: anyone (not challenger), status CREATED/REJECTED */}
+                                {dare.dareType === 'PUBLIC_BOUNTY' && (displayStatus === 'CREATED' || displayStatus === 'REJECTED') && !isChallenger && !showProofUpload && (
+                                    <button
+                                        onClick={() => setShowProofUpload(true)}
+                                        disabled={!xLinked}
+                                        className="w-full cursor-pointer rounded-xl bg-[#FF6B35] py-3 text-sm font-semibold text-white transition-all hover:bg-[#FF8A5C] disabled:opacity-50"
+                                    >
+                                        🏆 {displayStatus === 'REJECTED' ? 'Resubmit Proof' : 'Submit Proof & Claim Bounty'}
                                     </button>
                                 )}
 
@@ -601,8 +612,8 @@ export default function DareDetail() {
                                     </>
                                 )}
 
-                                {/* Refuse (for targeted daree on created dares) */}
-                                {displayStatus === 'CREATED' && isDaree && (
+                                {/* Refuse (ONLY for targeted daree on Direct Dares) */}
+                                {displayStatus === 'CREATED' && isDaree && dare.dareType === 'DIRECT_DARE' && (
                                     <button
                                         onClick={handleRefuse}
                                         disabled={!!actionLoading}
