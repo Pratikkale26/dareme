@@ -95,6 +95,12 @@ export default function DareDetail() {
         ? dare.daree.walletAddress === walletAddress
         : false;
 
+    // For targeted Direct Dares before acceptance: dare.daree is null,
+    // but dare.targetXHandle is set. Compare with current user's X handle.
+    const isTargetedDaree = !isDaree && dare?.targetXHandle && xHandle
+        ? dare.targetXHandle.toLowerCase() === xHandle.toLowerCase()
+        : false;
+
     // Helper: sign and send transaction
     const sendTx = useCallback(async (actionName: string, buildFn: () => any, onSuccess?: () => void) => {
         if (!walletPubkey || !solanaWallet) {
@@ -170,9 +176,10 @@ export default function DareDetail() {
     const handleReject = () => {
         if (!dare || !walletPubkey) return;
         const darePDA = new PublicKey(dare.darePDA);
+        // For Public Bounties, rejection resets to REJECTED (allows another submitter)
         sendTx('reject',
             () => buildRejectDareInstruction({ challenger: walletPubkey, darePDA }),
-            () => setOptimisticStatus('ACTIVE')
+            () => setOptimisticStatus('REJECTED')
         );
     };
 
@@ -613,7 +620,7 @@ export default function DareDetail() {
                                 )}
 
                                 {/* Refuse (ONLY for targeted daree on Direct Dares) */}
-                                {displayStatus === 'CREATED' && isDaree && dare.dareType === 'DIRECT_DARE' && (
+                                {displayStatus === 'CREATED' && (isDaree || isTargetedDaree) && dare.dareType === 'DIRECT_DARE' && (
                                     <button
                                         onClick={handleRefuse}
                                         disabled={!!actionLoading}
