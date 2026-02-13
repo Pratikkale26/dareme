@@ -20,7 +20,7 @@ import webhookRoutes from "./routes/webhook.routes";
 const app = express();
 
 // Middleware
-app.use(cors({ origin: ["http://localhost:3000", "http://localhost:3001", "https://www.dareme.site/"], credentials: true }));
+app.use(cors({ origin: ["http://localhost:3000", "http://localhost:3001", "https://www.dareme.site"], credentials: true }));
 app.use(express.json());
 
 // Health check
